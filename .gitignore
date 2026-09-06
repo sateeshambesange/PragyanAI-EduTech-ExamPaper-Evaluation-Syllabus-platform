@@ -1,0 +1,14 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# Local databases and vector stores
+edupilot_enterprise.db
+chroma_vector_store/
+
+# Streamlit config and secrets
+.streamlit/secrets.toml
+.env
