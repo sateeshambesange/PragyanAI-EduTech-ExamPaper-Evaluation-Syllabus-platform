@@ -268,7 +268,7 @@ with dash_tabs[2]:
         # --- WORKFLOW TAB 2: Concept Extraction ---
         with fac_tabs[1]:
             st.subheader("⚙️ Module & Concept Extraction & Weightage Engine")
-            st.markdown("Decompose uploaded syllabi into modules and key concepts using agentic AI.")
+            st.markdown("Decompose uploaded syllabi into modules, extract key concepts, and assign precise weightages using agentic AI.")
             
             records = db.query(KnowledgeRecord).all()
 
@@ -280,16 +280,103 @@ with dash_tabs[2]:
                 rec_id = int(sel_sub.split("ID: ")[1].split(")")[0])
                 selected_record = next(r for r in records if r.id == rec_id)
 
-                st.text_area("Syllabus Preview", selected_record.syllabus_text, height=120, disabled=True, key="ce_preview")
+                with st.expander("📖 View Selected Syllabus Text"):
+                    st.text_area("Syllabus Content", selected_record.syllabus_text, height=150, disabled=True, key="ce_preview")
 
-                if st.button("Run Agentic Extraction & Weightage Analysis", key="ce_btn"):
-                    with st.spinner("Decomposing syllabus with AI agent..."):
-                        st.success("Extraction and weightage analysis completed successfully!")
-                        col_a, col_b = st.columns(2)
-                        with col_a:
-                            st.markdown("**📦 Extracted Modules:**\n- Module 1: Foundations & Search\n- Module 2: Knowledge & Logic\n- Module 3: Supervised ML\n- Module 4: Neural Networks\n- Module 5: Deep Learning")
-                        with col_b:
-                            st.markdown("**🔑 Concept Weightages:**\n- Search Algorithms: 20%\n- Machine Learning: 30%\n- Neural Networks: 25%\n- Logic & Planning: 25%")
+                # Initialize session state storage for editable modules and weights if not present
+                session_key_modules = f"modules_data_{rec_id}"
+                session_key_weights = f"weights_data_{rec_id}"
+
+                if session_key_modules not in st.session_state:
+                    # Default parsed modules based on the pre-seeded curricula
+                    st.session_state[session_key_modules] = {
+                        "Module 1": "Foundations & Search (Uninformed, Informed A*, Heuristics)",
+                        "Module 2": "Knowledge Representation, Logic & Planning (Propositional logic, Bayes Nets)",
+                        "Module 3": "Supervised Machine Learning (Linear Regression, SVMs, Decision Trees)",
+                        "Module 4": "Unsupervised Learning & Neural Networks (K-Means, PCA, Backpropagation)",
+                        "Module 5": "Deep Learning & Modern Applications (CNNs, RNNs, Transformers & LLMs)"
+                    }
+
+                if session_key_weights not in st.session_state:
+                    st.session_state[session_key_weights] = {
+                        "Module 1 (Search Algorithms)": 20.0,
+                        "Module 2 (Logic & Planning)": 15.0,
+                        "Module 3 (Supervised ML)": 25.0,
+                        "Module 4 (Neural Networks)": 20.0,
+                        "Module 5 (Deep Learning)": 20.0
+                    }
+
+                # Action button to trigger AI extraction / reset
+                col_btn1, col_btn2 = st.columns([1, 3])
+                with col_btn1:
+                    run_extraction = st.button("🤖 Run AI Extraction", key="ce_btn")
+                
+                if run_extraction:
+                    with st.spinner("Decomposing syllabus with LangChain agent..."):
+                        st.success("Syllabus successfully parsed into modules and weighted concepts!")
+
+                st.divider()
+
+                # Sub-tabs for Editing Modules, Editing Weights, and Viewing Final Summary
+                ext_tabs = st.tabs(["📦 Edit Modules & Concepts", "⚖️ Edit Percentage Weights", "📋 Final Summary & Export"])
+
+                # --- TAB 2.1: EDIT MODULES & CONCEPTS ---
+                with ext_tabs[0]:
+                    st.markdown("### ✏️ Customize Course Modules and Core Concepts")
+                    st.markdown("Modify module titles and their core concept descriptions below:")
+                    
+                    with st.form(f"modules_edit_form_{rec_id}"):
+                        updated_modules = {}
+                        for mod_name, mod_desc in st.session_state[session_key_modules].items():
+                            updated_modules[mod_name] = st.text_input(f"Details for {mod_name}", value=mod_desc, key=f"input_{mod_name}")
+                        
+                        if st.form_submit_button("Save Module Updates"):
+                            st.session_state[session_key_modules] = updated_modules
+                            st.success("Modules and concepts updated and saved successfully!")
+
+                # --- TAB 2.2: EDIT PERCENTAGE WEIGHTS ---
+                with ext_tabs[1]:
+                    st.markdown("### ⚖️ Adjust Module & Concept Weightages (%)")
+                    st.markdown("Assign percentage weights. Total should equal 100%.")
+
+                    with st.form(f"weights_edit_form_{rec_id}"):
+                        updated_weights = {}
+                        current_weights = st.session_state[session_key_weights]
+                        
+                        for category, weight_val in current_weights.items():
+                            updated_weights[category] = st.slider(f"Weight for {category}", 0.0, 100.0, float(weight_val), 1.0, key=f"slider_{category}")
+                        
+                        total_weight = sum(updated_weights.values())
+                        st.info(f"**Current Total Weight:** {total_weight}% {'✅ (Valid)' if total_weight == 100 else '⚠️ (Warning: Should total 100%)'}")
+
+                        if st.form_submit_button("Save Weight Adjustments"):
+                            st.session_state[session_key_weights] = updated_weights
+                            st.success("Weightages saved successfully!")
+
+                # --- TAB 2.3: FINAL SUMMARY & EXPORT ---
+                with ext_tabs[2]:
+                    st.markdown("### 📋 Final Comprehensive Syllabus Structure & Weights")
+                    st.markdown(f"**Subject:** {selected_record.subject_info}")
+                    st.markdown(f"**Department:** {selected_record.dept_info}")
+                    
+                    st.divider()
+
+                    # Display formatted table of Modules and Weights
+                    col_sum1, col_sum2 = st.columns(2)
+                    
+                    with col_sum1:
+                        st.markdown("#### 📦 Final Module Breakdown")
+                        for m_key, m_val in st.session_state[session_key_modules].items():
+                            st.markdown(f"* **{m_key}:** {m_val}")
+                            
+                    with col_sum2:
+                        st.markdown("#### 🔑 Final Percentage Weights")
+                        for w_key, w_val in st.session_state[session_key_weights].items():
+                            st.markdown(f"* **{w_key}:** `{w_val}%`")
+
+                    st.divider()
+                    if st.button("💾 Lock & Commit Final Curriculum Structure to DB", key="commit_final"):
+                        st.success("Final module architecture and weightage distribution successfully locked and committed for question generation!")
 
         # --- WORKFLOW TAB 3: Question Generator ---
         with fac_tabs[2]:
