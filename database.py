@@ -60,36 +60,64 @@ class SubmissionRecord(Base):
     rag_explanation = Column(Text)
 
 def init_db():
+    # Create tables safely if they don't exist
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    if not db.query(UserModel).first():
-        admin = UserModel(
-            username="admin", 
-            password="adminpassword", 
-            role="PragyanAI Admin", 
-            full_name="PragyanAI System Admin",
-            department="Administration",
-            bio_or_topics="System Management & Oversight"
-        )
-        faculty = UserModel(
-            username="faculty1", 
-            password="password123", 
-            role="Faculty", 
-            full_name="Dr. Alan Turing", 
-            department="Computer Science & Engineering", 
-            bio_or_topics="AI, Machine Learning, Data Structures"
-        )
-        student = UserModel(
-            username="student1", 
-            password="password123", 
-            role="Student", 
-            full_name="Ada Lovelace", 
-            department="Computer Science & Engineering", 
-            bio_or_topics="Computer Science Semester 4"
-        )
-        db.add_all([admin, faculty, student])
+    try:
+        # Comprehensive sample users and rich profiles
+        sample_users = [
+            UserModel(
+                username="admin", 
+                password="adminpassword", 
+                role="PragyanAI Admin", 
+                full_name="PragyanAI System Admin",
+                department="Platform Administration",
+                bio_or_topics="Global system management, role governance, and audit logging."
+            ),
+            UserModel(
+                username="faculty1", 
+                password="password123", 
+                role="Faculty", 
+                full_name="Dr. Alan Turing", 
+                department="Computer Science & Engineering", 
+                bio_or_topics="Artificial Intelligence, Machine Learning, Heuristic Search, Neural Networks"
+            ),
+            UserModel(
+                username="faculty2", 
+                password="password123", 
+                role="Faculty", 
+                full_name="Dr. Grace Hopper", 
+                department="Information Technology", 
+                bio_or_topics="Software Architecture, Data Structures, Compilers"
+            ),
+            UserModel(
+                username="student1", 
+                password="password123", 
+                role="Student", 
+                full_name="Ada Lovelace", 
+                department="Computer Science & Engineering", 
+                bio_or_topics="Computer Science Semester 4 — Focused on AI & Algorithms"
+            ),
+            UserModel(
+                username="student2", 
+                password="password123", 
+                role="Student", 
+                full_name="Linus Torvalds", 
+                department="Computer Science & Engineering", 
+                bio_or_topics="Computer Science Semester 6 — Focused on Systems & Networks"
+            )
+        ]
+
+        for user in sample_users:
+            existing_user = db.query(UserModel).filter(UserModel.username == user.username).first()
+            if not existing_user:
+                db.add(user)
         db.commit()
-    db.close()
+    except Exception as e:
+        db.rollback()
+        print(f"Database initialization notice: {e}")
+    finally:
+        db.close()
 
 VECTOR_DB_DIR = "./chroma_vector_store"
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
