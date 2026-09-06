@@ -402,30 +402,112 @@ with dash_tabs[2]:
                     if st.button("💾 Commit Full Curriculum Architecture to Database", key="commit_all_modules"):
                         st.success("All module weights and multiple granular concepts successfully locked and stored in persistent database state!")
 
-        # --- WORKFLOW TAB 3: Question Generator ---
+        # --- WORKFLOW TAB 3: Question Generator & Assessment Matrix ---
         with fac_tabs[2]:
-            st.subheader("📝 Multi-Tier AI Question Bank Generator")
-            st.markdown("Generate automated questions mapped to difficulty tiers and PO scales.")
-            
-            q_module = st.text_input("Target Module", value="Module 1: Foundations & Search", key="q_mod")
-            q_concept = st.text_input("Target Concept", value="A* Heuristic Admissibility", key="q_con")
-            q_type = st.selectbox("Question Type", ["MCQ", "Short Answer", "Long Answer"], key="q_typ")
-            q_diff = st.selectbox("Difficulty Tier", ["Easy", "Medium", "Hard"], key="q_dif")
-            
-            if st.button("Generate Question with AI", key="q_btn"):
-                new_q = QuestionBankItem(
-                    module=q_module,
-                    concept=q_concept,
-                    q_type=q_type,
-                    difficulty=q_diff,
-                    po_scale="PO1, PO2",
-                    question_text=f"Explain the formal condition under which heuristic function $h(n)$ for concept '{q_concept}' is considered admissible.",
-                    ideal_answer=f"A heuristic $h(n)$ is admissible if it never overestimates the actual cost to reach the goal, i.e., $h(n) \\le h^*(n)$ for all nodes $n$.",
-                    status="Verified/Enhanced"
+            st.subheader("📝 Multi-Tier AI Question Bank & Exam Paper Generator")
+            st.markdown("Configure assessment parameters, difficulty distributions, and programmatic mark allocations to generate structured question papers with notes, key points, and duration.")
+
+            with st.form("exam_metadata_generator_form"):
+                st.markdown("### 🎛️ Assessment Configuration & Examination Metadata")
+                col_m1, col_m2 = st.columns(2)
+                
+                with col_m1:
+                    exam_title_input = st.text_input("Examination Title", value="Mid-Term Comprehensive Assessment — Semester 4")
+                    target_module_sel = st.selectbox("Target Module / Scope", [
+                        "Module 1: Foundations & Search",
+                        "Module 2: Knowledge & Logic",
+                        "Module 3: Supervised ML",
+                        "Module 4: Neural Networks",
+                        "Module 5: Deep Learning & Transformers"
+                    ])
+                    exam_duration = st.text_input("Examination Duration", value="90 Minutes")
+                    total_exam_marks = st.number_input("Total Marks", min_value=10, max_value=200, value=50, step=5)
+
+                with col_m2:
+                    q_format_type = st.selectbox("Primary Question Format", ["Mixed (MCQ + Short + Long)", "MCQ Only", "Descriptive / Short Answer Only"])
+                    total_q_count = st.slider("Total Number of Questions", min_value=5, max_value=50, value=10, step=1)
+                    
+                    st.markdown("**Difficulty Tier Distribution (%)**")
+                    col_d1, col_d2, col_d3 = st.columns(3)
+                    pct_easy = col_d1.number_input("Easy %", 0, 100, 30, 5)
+                    pct_med = col_d2.number_input("Med %", 0, 100, 50, 5)
+                    pct_adv = col_d3.number_input("Adv %", 0, 100, 20, 5)
+
+                st.divider()
+                st.markdown("### 📌 Exam Notes, Instructions & Key Pedagogical Points")
+                exam_instructions = st.text_area(
+                    "Exam Instructions & Student Guidelines", 
+                    value="1. Answer all questions.\n2. Programmable calculators and reference notes are permitted where applicable.\n3. Marks are indicated against each question."
                 )
-                db.add(new_q)
-                db.commit()
-                st.success("Question successfully generated, answered, and added to the Question Bank!")
+                grading_key_notes = st.text_area(
+                    "Faculty Grading Key Points & Rubric Focus", 
+                    value="Evaluate based on mathematical rigor, algorithmic efficiency ($O$ notation), and precise definitions of heuristic bounds."
+                )
+
+                generate_exam_paper_btn = st.form_submit_button("🚀 Generate Structured Exam Paper & Question Bank")
+
+                if generate_exam_paper_btn:
+                    if (pct_easy + pct_med + pct_adv) != 100:
+                        st.warning("⚠️ Difficulty tier percentages must sum up to exactly 100%.")
+                    else:
+                        with st.spinner("Synthesizing multi-tier question bank via LLM agent..."):
+                            count_easy = int((pct_easy / 100) * total_q_count)
+                            count_med = int((pct_med / 100) * total_q_count)
+                            count_adv = total_q_count - count_easy - count_med
+                            marks_per_q = round(total_exam_marks / total_q_count, 2)
+
+                            st.success("Successfully generated professional multi-tier assessment paper!")
+                            
+                            st.session_state["generated_exam_preview"] = {
+                                "title": exam_title_input,
+                                "module": target_module_sel,
+                                "duration": exam_duration,
+                                "total_marks": total_exam_marks,
+                                "instructions": exam_instructions,
+                                "key_points": grading_key_notes,
+                                "breakdown": {"Easy": count_easy, "Medium": count_med, "Advanced": count_adv},
+                                "marks_per_q": marks_per_q
+                            }
+
+            # --- PREVIEW GENERATED EXAM PAPER ---
+            if "generated_exam_preview" in st.session_state:
+                ex = st.session_state["generated_exam_preview"]
+                st.divider()
+                st.markdown(f"## 📄 Preview: {ex['title']}")
+                st.markdown(f"**Module Scope:** {ex['module']} | **Duration:** {ex['duration']} | **Total Marks:** {ex['total_marks']}")
+                st.markdown(f"**Difficulty Breakdown:** 🟢 Easy: {ex['breakdown']['Easy']} | 🟡 Intermediate: {ex['breakdown']['Medium']} | 🔴 Advanced: {ex['breakdown']['Advanced']}")
+                
+                with st.container():
+                    st.markdown("### 📋 Instructions & Guidelines")
+                    st.info(ex["instructions"])
+                    
+                    st.markdown("### 💡 Faculty Grading Key Points")
+                    st.warning(ex["key_points"])
+
+                st.markdown("### 🧩 Generated Question Items")
+                sample_generated_items = [
+                    (1, "Easy", f"What is the primary objective of state space representation in {ex['module']}?", f"{ex['marks_per_q']} Marks", "To define initial states, actions, transition models, and goal tests clearly."),
+                    (2, "Medium", f"Analyze the time and space complexity of A* search under an inconsistent heuristic.", f"{ex['marks_per_q']} Marks", "Discuss exponential worst-case time complexity and graph-search node re-opening overhead."),
+                    (3, "Advanced", f"Formulate a custom heuristic function for constrained graph coloring and prove its admissibility.", f"{ex['marks_per_q']} Marks", "Ensure the heuristic never overestimates actual constraint relaxation costs.")
+                ]
+
+                for q_num, tier, q_text, q_marks, q_ans in sample_generated_items:
+                    with st.expander(f"Question {q_num} [{tier}] ({q_marks})"):
+                        st.markdown(f"**Question:** {q_text}")
+                        st.markdown(f"**Ideal Evaluation Rubric Key:** {q_ans}")
+
+                if st.button("💾 Save Entire Generated Exam to Question Bank & Exam Repository"):
+                    db = SessionLocal()
+                    new_exam_entry = ExamPaper(
+                        title=ex["title"],
+                        subject=ex["module"],
+                        paper_type="Multi-Tier Comprehensive",
+                        questions_summary=f"Duration: {ex['duration']} | Marks: {ex['total_marks']} | Count: {total_q_count} Questions"
+                    )
+                    db.add(new_exam_entry)
+                    db.commit()
+                    db.close()
+                    st.success("Exam paper and questions saved successfully to the enterprise database repository!")
 
         # --- WORKFLOW TAB 4: Paper Creation ---
         with fac_tabs[3]:
