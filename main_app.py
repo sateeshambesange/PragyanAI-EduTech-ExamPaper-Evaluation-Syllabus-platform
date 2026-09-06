@@ -265,10 +265,10 @@ with dash_tabs[2]:
                         )
                         st.success(f"Knowledge Bank for '{subject_info}' ingested and vectorized successfully!")
 
-        # --- WORKFLOW TAB 2: Concept Extraction & Two-Stage Module Sub-Tabs ---
+        # --- WORKFLOW TAB 2: Module-wise Multi-Concept Weightage Engine ---
         with fac_tabs[1]:
             st.subheader("⚙️ Module & Concept Extraction & Weightage Engine")
-            st.markdown("Decompose uploaded syllabi into modules, extract granular concepts, and configure two-stage percentage weights module by module.")
+            st.markdown("Decompose uploaded syllabi into modules, configure module-level weights, and manage multiple granular concepts or topics per module with 'Save and Move On' sub-tabs.")
             
             records = db.query(KnowledgeRecord).all()
 
@@ -283,10 +283,10 @@ with dash_tabs[2]:
                 with st.expander("📖 View Selected Syllabus Text"):
                     st.text_area("Syllabus Content", selected_record.syllabus_text, height=150, disabled=True, key="ce_preview")
 
-                # Session State keys for Two-Stage Architecture
-                s_key_mods = f"twostage_modules_{rec_id}"
-                s_key_mod_weights = f"twostage_mod_weights_{rec_id}"
-                s_key_concepts = f"twostage_concepts_{rec_id}"
+                # Session State keys
+                s_key_mods = f"mod_titles_{rec_id}"
+                s_key_mod_weights = f"mod_weights_{rec_id}"
+                s_key_concepts = f"mod_multi_concepts_{rec_id}"
 
                 if s_key_mods not in st.session_state:
                     st.session_state[s_key_mods] = {
@@ -308,92 +308,69 @@ with dash_tabs[2]:
 
                 if s_key_concepts not in st.session_state:
                     st.session_state[s_key_concepts] = {
-                        "Module 1": {"BFS/DFS & Uninformed Search": 10.0, "A* Heuristic Search & Admissibility": 10.0},
-                        "Module 2": {"Propositional & Predicate Logic": 8.0, "Bayesian Networks & Planning": 7.0},
-                        "Module 3": {"Linear & Polynomial Regression": 12.0, "SVMs & Decision Trees": 13.0},
-                        "Module 4": {"K-Means & PCA Clustering": 10.0, "ANNs & Backpropagation": 10.0},
-                        "Module 5": {"CNNs & Computer Vision": 10.0, "Transformers & LLMs": 10.0}
+                        "Module 1": {"BFS / DFS Uninformed Search": 10.0, "A* Heuristic Admissibility": 10.0},
+                        "Module 2": {"Propositional Logic": 8.0, "Bayesian Networks": 7.0},
+                        "Module 3": {"Linear Regression": 12.0, "SVMs & Decision Trees": 13.0},
+                        "Module 4": {"K-Means Clustering": 10.0, "Principal Component Analysis (PCA)": 5.0, "Backpropagation in ANNs": 5.0},
+                        "Module 5": {"CNNs for Vision": 10.0, "Transformers & LLMs": 10.0}
                     }
 
                 if st.button("🤖 Run AI Two-Stage Extraction", key="ce_btn"):
-                    with st.spinner("Extracting modules and sub-concepts via AI agent..."):
+                    with st.spinner("Extracting modules and granular topics via AI agent..."):
                         st.success("Two-stage architectural extraction completed successfully!")
 
                 st.divider()
 
-                # Master Stage Selector Tabs
-                ext_tabs = st.tabs([
-                    "1️⃣ Stage 1: Module-wise Weights (By Module Sub-Tabs)", 
-                    "2️⃣ Stage 2: Concept-wise Granular Weights (By Module Sub-Tabs)", 
-                    "📋 Structured Tabular View & Save"
-                ])
+                mod_keys = list(st.session_state[s_key_mods].keys())
+                
+                # Create sub-tabs: One sub-tab per module + 1 final structured tabular summary tab
+                tab_list = [f"📦 {m}" for m in mod_keys] + ["📋 Final Structured Tabular View"]
+                mod_sub_tabs = st.tabs(tab_list)
 
-                # --- STAGE 1: MODULE-WISE WEIGHTS (EACH MODULE AS A SUB-TAB) ---
-                with ext_tabs[0]:
-                    st.markdown("### 🏛️ Stage 1: Module-wise Percentage Weight Allocation")
-                    st.markdown("Select a module sub-tab below to configure its weight independently. Total across all modules must equal 100%.")
+                # Loop through each module tab to manage module weight + multiple concepts
+                for idx, mod_key in enumerate(mod_keys):
+                    with mod_sub_tabs[idx]:
+                        mod_title = st.session_state[s_key_mods][mod_key]
+                        st.markdown(f"### 🎯 {mod_key}: {mod_title}")
+                        st.markdown("Configure module-level weight and manage multiple sub-topics or concepts under this module.")
 
-                    # Create sub-tabs for each module in Stage 1
-                    mod_keys = list(st.session_state[s_key_mods].keys())
-                    mod_sub_tabs = st.tabs([f"📦 {m_key}" for m_key in mod_keys])
+                        with st.form(f"form_mod_{rec_id}_{mod_key}"):
+                            st.markdown("#### 🏛️ Stage 1: Module Weight Allocation")
+                            curr_mod_wt = float(st.session_state[s_key_mod_weights].get(mod_key, 20.0))
+                            new_mod_wt = st.slider(f"Assign Weight (%) for {mod_key}", 0.0, 100.0, curr_mod_wt, 1.0, key=f"slider_wt_{mod_key}")
+                            
+                            st.divider()
+                            st.markdown("#### 🔬 Stage 2: Multiple Concepts & Topics within Module")
+                            st.markdown("Edit existing concepts or adjust their granular sub-weights:")
 
-                    for idx, mod_key in enumerate(mod_keys):
-                        with mod_sub_tabs[idx]:
-                            mod_title = st.session_state[s_key_mods][mod_key]
-                            st.markdown(f"#### Configuration for {mod_key}: *{mod_title}*")
+                            current_concepts = st.session_state[s_key_concepts][mod_key]
+                            updated_concepts = {}
 
-                            with st.form(f"s1_form_{rec_id}_{mod_key}"):
-                                current_val = float(st.session_state[s_key_mod_weights].get(mod_key, 20.0))
-                                new_weight = st.slider(
-                                    f"Assign Weight (%) for {mod_key}", 
-                                    0.0, 100.0, current_val, 1.0, 
-                                    key=f"s1_slider_{mod_key}"
+                            for c_name, c_wt in current_concepts.items():
+                                updated_concepts[c_name] = st.number_input(
+                                    f"Weight for Concept: '{c_name}'", 
+                                    min_value=0.0, max_value=100.0, 
+                                    value=float(c_wt), step=0.5, 
+                                    key=f"num_concept_{mod_key}_{c_name}"
                                 )
+
+                            st.markdown("---")
+                            st.markdown("➕ **Add New Concept / Topic**")
+                            new_c_name = st.text_input(f"New Concept Name for {mod_key}", key=f"new_c_name_{mod_key}")
+                            new_c_wt = st.number_input(f"New Concept Weight (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.5, key=f"new_c_wt_{mod_key}")
+
+                            submitted_mod = st.form_submit_button(f"💾 Save {mod_key} & Move On")
+
+                            if submitted_mod:
+                                if new_c_name.strip() and new_c_wt > 0.0:
+                                    updated_concepts[new_c_name.strip()] = new_c_wt
                                 
-                                if st.form_submit_button(f"💾 Save {mod_key} Weight & Move On"):
-                                    st.session_state[s_key_mod_weights][mod_key] = new_weight
-                                    st.success(f"{mod_key} weight successfully saved!")
+                                st.session_state[s_key_mod_weights][mod_key] = new_mod_wt
+                                st.session_state[s_key_concepts][mod_key] = updated_concepts
+                                st.success(f"✅ {mod_key} configuration (Module Weight: {new_mod_wt}%) saved successfully!")
 
-                    total_s1 = sum(st.session_state[s_key_mod_weights].values())
-                    st.divider()
-                    st.info(f"**Current Stage 1 Total Weight Across All Modules:** {total_s1}% {'✅ (Valid)' if total_s1 == 100.0 else '⚠️ (Must total exactly 100%)'}")
-
-                # --- STAGE 2: CONCEPT-WISE GRANULAR WEIGHTS (EACH MODULE AS A SUB-TAB) ---
-                with ext_tabs[1]:
-                    st.markdown("### 🔬 Stage 2: Concept-wise Granular Weight Breakdown")
-                    st.markdown("Select a module sub-tab below to manage sub-concept allocations for that specific module.")
-
-                    # Create sub-tabs for each module in Stage 2
-                    concept_sub_tabs = st.tabs([f"🔬 {m_key} Concepts" for m_key in mod_keys])
-
-                    for idx, mod_key in enumerate(mod_keys):
-                        with concept_sub_tabs[idx]:
-                            mod_title = st.session_state[s_key_mods][mod_key]
-                            concepts_dict = st.session_state[s_key_concepts][mod_key]
-                            mod_pool = st.session_state[s_key_mod_weights].get(mod_key, 0.0)
-
-                            st.markdown(f"#### Granular Sub-Concepts for {mod_key}: *{mod_title}*")
-                            st.caption(f"Allocated Module Pool: **{mod_pool}%**")
-
-                            with st.form(f"s2_form_{rec_id}_{mod_key}"):
-                                updated_sub_dict = {}
-                                for c_name, c_weight in concepts_dict.items():
-                                    updated_sub_dict[c_name] = st.number_input(
-                                        f"Weight for sub-concept '{c_name}'", 
-                                        min_value=0.0, max_value=100.0, 
-                                        value=float(c_weight), step=0.5, 
-                                        key=f"s2_num_{mod_key}_{c_name}"
-                                    )
-                                
-                                sub_total = sum(updated_sub_dict.values())
-                                st.write(f"Sub-weights sum: **{sub_total}%**")
-
-                                if st.form_submit_button(f"💾 Save {mod_key} Concepts & Move On"):
-                                    st.session_state[s_key_concepts][mod_key] = updated_sub_dict
-                                    st.success(f"{mod_key} sub-concept weights saved successfully!")
-
-                # --- STRUCTURED TABULAR VIEW & SAVE ---
-                with ext_tabs[2]:
+                # Final Tab: Structured Tabular View & Save
+                with mod_sub_tabs[-1]:
                     st.markdown("### 📋 Structured Tabular View of Complete Curriculum Architecture")
                     st.markdown(f"**Subject Course:** {selected_record.subject_info}")
                     st.markdown(f"**Department:** {selected_record.dept_info}")
@@ -403,6 +380,9 @@ with dash_tabs[2]:
                     mod_weights_map = st.session_state[s_key_mod_weights]
                     mod_names_map = st.session_state[s_key_mods]
                     concepts_map = st.session_state[s_key_concepts]
+
+                    total_mod_wts = sum(mod_weights_map.values())
+                    st.info(f"**Total Module Weight Pool:** {total_mod_wts}% {'✅ (Valid)' if total_mod_wts == 100.0 else '⚠️ (Warning: Module weights must equal 100%)'}")
 
                     for m_key, m_title in mod_names_map.items():
                         m_weight = mod_weights_map.get(m_key, 0.0)
@@ -419,12 +399,8 @@ with dash_tabs[2]:
                     st.table(table_rows)
 
                     st.divider()
-                    col_save1, col_save2 = st.columns(2)
-                    with col_save1:
-                        if st.button("💾 Commit Full Two-Stage Structure to Database", key="commit_all"):
-                            st.success("Two-stage curriculum hierarchy, modules, and concept weights successfully locked and stored in persistent database state!")
-                    with col_save2:
-                        st.info("Ready for downstream multi-tier question generation.")
+                    if st.button("💾 Commit Full Curriculum Architecture to Database", key="commit_all_modules"):
+                        st.success("All module weights and multiple granular concepts successfully locked and stored in persistent database state!")
 
         # --- WORKFLOW TAB 3: Question Generator ---
         with fac_tabs[2]:
