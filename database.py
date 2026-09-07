@@ -22,6 +22,8 @@ class UserModel(Base):
     full_name = Column(String, default="")
     college = Column(String, default="Pragyan Institute of Technology, Bengaluru")
     department = Column(String, default="")
+    semester = Column(String, default="Semester 4") # Added for student tracking
+    enrolled_subjects = Column(Text, default="CS301: Artificial Intelligence & Machine Learning") # Added for student enrollment
     bio_or_topics = Column(Text, default="")
 
 class KnowledgeRecord(Base):
@@ -96,7 +98,7 @@ class SubmissionRecord(Base):
     rag_explanation = Column(Text)
 
 
-# --- 2. Database Initialization & Enterprise Seeding ---
+# --- 2. Database Initialization & Expanded Enterprise Seeding ---
 
 def init_db():
     Base.metadata.create_all(bind=engine)
@@ -104,9 +106,9 @@ def init_db():
     try:
         # 1. Seed System Admin
         if not db.query(UserModel).filter(UserModel.username == "admin").first():
-            db.add(UserModel(username="admin", password="adminpassword", role="PragyanAI Admin", full_name="Sateesh Ambesange (Founder & CEO)", department="Platform Administration", bio_or_topics="Global enterprise supervision."))
+            db.add(UserModel(username="admin", password="adminpassword", role="PragyanAI Admin", full_name="Sateesh Ambesange (Founder & CEO)", department="Platform Administration", college="PragyanAI Headquarters, Bengaluru", bio_or_topics="Global enterprise supervision."))
 
-        # 2. Seed 25+ Faculty Members across Multiple Departments & Colleges
+        # 2. Seed Expanded Faculty Profiles with College, Dept, and Expertise
         faculties = [
             ("faculty1", "password123", "Dr. Alan Turing", "Department of Computer Science & Engineering", "Pragyan Institute of Technology, Bengaluru", "AI & Machine Learning"),
             ("faculty2", "password123", "Dr. Grace Hopper", "Department of Information Technology", "Pragyan Institute of Technology, Bengaluru", "Cloud Computing & Distributed Systems"),
@@ -124,21 +126,21 @@ def init_db():
             if not db.query(UserModel).filter(UserModel.username == uname).first():
                 db.add(UserModel(username=uname, password=pwd, role="Faculty", full_name=fname, department=dept, college=college, bio_or_topics=bio))
 
-        # 3. Seed Sample Students
+        # 3. Seed Expanded Student Profiles with College, Dept, Semester, and Enrolled Subjects
         students = [
-            ("student1", "password123", "Ada Lovelace", "Department of Computer Science & Engineering", "Pragyan Institute of Technology, Bengaluru"),
-            ("student2", "password123", "Linus Torvalds", "Department of Computer Science & Engineering", "Pragyan Institute of Technology, Bengaluru"),
-            ("student3", "password123", "Radia Perlman", "Department of Information Technology", "Pragyan Institute of Technology, Bengaluru"),
-            ("student4", "password123", "Guido van Rossum", "Department of Artificial Intelligence & Data Science", "Pragyan Institute of Technology, Bengaluru"),
-            ("student5", "password123", "Satya Nadella", "Department of Cybersecurity & Defense", "Pragyan Institute of Technology, Bengaluru"),
-            ("student6", "password123", "Sundar Pichai", "Department of Electronics & Communication Engineering", "Karnataka School of Engineering, Mysuru")
+            ("student1", "password123", "Ada Lovelace", "Department of Computer Science & Engineering", "Pragyan Institute of Technology, Bengaluru", "Semester 4", "CS301: Artificial Intelligence & Machine Learning, IT405: Cloud Computing"),
+            ("student2", "password123", "Linus Torvalds", "Department of Computer Science & Engineering", "Pragyan Institute of Technology, Bengaluru", "Semester 4", "CS301: Artificial Intelligence & Machine Learning, CS202: Advanced Data Structures"),
+            ("student3", "password123", "Radia Perlman", "Department of Information Technology", "Pragyan Institute of Technology, Bengaluru", "Semester 6", "IT405: Cloud Computing, IT304: Big Data Analytics"),
+            ("student4", "password123", "Guido van Rossum", "Department of Artificial Intelligence & Data Science", "Pragyan Institute of Technology, Bengaluru", "Semester 4", "AIDS501: Generative AI & LLMs, CS301: Artificial Intelligence"),
+            ("student5", "password123", "Satya Nadella", "Department of Cybersecurity & Defense", "Pragyan Institute of Technology, Bengaluru", "Semester 6", "CY310: Cyber Security & Ethical Hacking, IT405: Cloud Computing"),
+            ("student6", "password123", "Sundar Pichai", "Department of Electronics & Communication Engineering", "Karnataka School of Engineering, Mysuru", "Semester 4", "ECE401: Digital Signal Processing, ECE302: VLSI Design")
         ]
 
-        for uname, pwd, fname, dept, college in students:
+        for uname, pwd, fname, dept, college, sem, subs in students:
             if not db.query(UserModel).filter(UserModel.username == uname).first():
-                db.add(UserModel(username=uname, password=pwd, role="Student", full_name=fname, department=dept, college=college, bio_or_topics="Semester 4 Enrolled Student"))
+                db.add(UserModel(username=uname, password=pwd, role="Student", full_name=fname, department=dept, college=college, semester=sem, enrolled_subjects=subs, bio_or_topics="Enrolled Regular Student"))
 
-        # 4. Seed 10 Detailed Technical Subjects
+        # 4. Seed 10 Detailed Technical Subjects mapped to respective faculty
         subjects_data = [
             ("faculty1", "Pragyan Institute of Technology, Bengaluru", "Department of Computer Science & Engineering", 
              "CS301: Artificial Intelligence & Machine Learning", "Theory with Lab", 100, 2, "1. Stuart Russell - AI\n2. Tom Mitchell - ML",
