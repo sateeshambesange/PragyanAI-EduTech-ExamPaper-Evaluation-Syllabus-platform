@@ -7,7 +7,7 @@ if st.session_state.get("role") != "PragyanAI Admin":
     st.error("Access Denied. Admins only.")
     st.stop()
 
-st.title("🛡️ PragyanAI System Admin Dashboard")
+st.title("PragyanAI System Admin Dashboard")
 st.markdown("Monitor global platform statistics, system health, user distribution, and institutional activity.")
 
 db = SessionLocal()
@@ -43,7 +43,7 @@ st.divider()
 col_chart1, col_chart2 = st.columns(2)
 
 with col_chart1:
-    st.markdown("### 👥 User Distribution Breakdown")
+    st.markdown("### User Distribution Breakdown")
     user_dist = {
         "Faculties": len(faculties),
         "Students": len(students),
@@ -52,7 +52,7 @@ with col_chart1:
     st.bar_chart(user_dist)
 
 with col_chart2:
-    st.markdown("### 📊 Assessment Pipeline Metrics")
+    st.markdown("### Assessment Pipeline Metrics")
     assessment_dist = {
         "Question Bank Items": questions,
         "Compiled Exam Papers": exams,
@@ -64,7 +64,7 @@ with col_chart2:
 st.divider()
 
 # --- Recent Institutional Activity Feed ---
-st.markdown("### 📋 Recent Institutional Records & Audit Logs")
+st.markdown("### Recent Institutional Records & Audit Logs")
 db = SessionLocal()
 recent_subjects = db.query(KnowledgeRecord).order_by(KnowledgeRecord.id.desc()).limit(3).all()
 recent_exams = db.query(ExamPaper).order_by(ExamPaper.id.desc()).limit(3).all()
@@ -73,7 +73,7 @@ db.close()
 col_act1, col_act2 = st.columns(2)
 
 with col_act1:
-    st.markdown("#### 📚 Recently Ingested Subjects")
+    st.markdown("#### Recently Ingested Subjects")
     if not recent_subjects:
         st.info("No subjects recorded yet.")
     else:
@@ -81,7 +81,7 @@ with col_act1:
             st.markdown(f"- **{s.subject_info}** (*{s.dept_info}*)")
 
 with col_act2:
-    st.markdown("#### 📑 Recently Compiled Exam Papers")
+    st.markdown("#### Recently Compiled Exam Papers")
     if not recent_exams:
         st.info("No exams compiled yet.")
     else:
